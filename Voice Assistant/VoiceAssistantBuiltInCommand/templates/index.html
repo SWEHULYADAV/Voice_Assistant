@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #output {
+            margin-top: 20px;
+        }
+
+        #weather-info {
+            margin-top: 20px;
+        }
+
+        #conversation {
+            max-width: 500px;
+            margin-top: 20px;
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Assistant</h1>
+        <button id="start-btn">Start Listening</button>
+        <p id="output"></p>
+        <audio id="audio" controls style="display: none;"></audio>
+    </div>
+
+    <div id="weather-info"></div>
+
+    <div id="conversation"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startBtn = document.getElementById('start-btn');
+            const output = document.getElementById('output');
+            const audio = document.getElementById('audio');
+            const recognition = new window.webkitSpeechRecognition();
+            const conversation = document.getElementById('conversation');
+
+            recognition.continuous = false;
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+
+            startBtn.addEventListener('click', function () {
+                startBtn.disabled = true;
+                output.textContent = 'Listening...';
+
+                recognition.start();
+            });
+
+            recognition.onresult = function (event) {
+                const command = event.results[0][0].transcript.trim();
+                output.textContent = 'Command: ' + command;
+
+                handleCommand(command);
+            };
+
+            recognition.onspeechend = function () {
+                recognition.stop();
+                startBtn.disabled = false;
+                output.textContent = '';
+            };
+
+            recognition.onerror = function (event) {
+                output.textContent = 'Error occurred in recognition: ' + event.error;
+                startBtn.disabled = false;
+            };
+
+            function handleCommand(command) {
+                const recognitionOutput = document.getElementById('output');
+                const conversationItem = document.createElement('div');
+                conversationItem.className = 'conversation-item';
+                conversationItem.textContent = 'User: ' + command;
+                conversation.appendChild(conversationItem);
+
+                if (command.includes('hello')) {
+                    recognitionOutput.textContent = 'Voice Assistant: Hello! How are you?';
+                    speakResponse('Hello! How are you?');
+                } else if (command.includes('your name')) {
+                    recognitionOutput.textContent = 'Voice Assistant: My name is Ihana. Nice to meet you!';
+                    speakResponse('My name is Ihana. Nice to meet you!');
+                } else if (command.includes('joke')) {
+                    const jokes = [
+                        "Why was the math book sad? Because it had too many problems.",
+                        "Why did the computer go to the doctor? It had a virus.",
+                        "What do you call a fake noodle? An impasta."
+                    ];
+                    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+                    recognitionOutput.textContent = 'Voice Assistant: ' + joke;
+                    speakResponse(joke);
+                } else if (command.includes('interesting fact')) {
+                    const facts = [
+                        "The shortest war in history was between Britain and Zanzibar on August 27, 1896, and lasted only 38 minutes.",
+                        "The longest word in the English language, according to the Oxford English Dictionary, is pneumonoultramicroscopicsilicovolcanoconiosis.",
+                        "The human nose can detect over 1 trillion different scents."
+                    ];
+                    const fact = facts[Math.floor(Math.random() * facts.length)];
+                    recognitionOutput.textContent = 'Voice Assistant: ' + fact;
+                    speakResponse(fact);
+                } else if (command.includes('calculate')) {
+                    const expression = command.replace('calculate', '').trim();
+                    try {
+                        const result = eval(expression);
+                        recognitionOutput.textContent = `Voice Assistant: The result is ${result}`;
+                        speakResponse(`The result is ${result}`);
+                    } catch (error) {
+                        recognitionOutput.textContent = 'Voice Assistant: Sorry, I couldn\'t calculate that.';
+                        speakResponse('Sorry, I couldn\'t calculate that.');
+                    }
+                } else if (command.includes('convert')) {
+                    const conversion = command.replace('convert', '').trim();
+                    if (conversion.includes('kilograms to pounds')) {
+                        const weight = parseFloat(conversion.split('kilograms to pounds')[0].trim());
+                        const result = weight * 2.20462;
+                        recognitionOutput.textContent = `Voice Assistant: ${weight} kilograms is equal to ${result} pounds`;
+                        speakResponse(`${weight} kilograms is equal to ${result} pounds`);
+                    } else if (conversion.includes('pounds to kilograms')) {
+                        const weight = parseFloat(conversion.split('pounds to kilograms')[0].trim());
+                        const result = weight / 2.20462;
+                        recognitionOutput.textContent = `Voice Assistant: ${weight} pounds is equal to ${result} kilograms`;
+                        speakResponse(`${weight} pounds is equal to ${result} kilograms`);
+                    } else {
+                        recognitionOutput.textContent = 'Voice Assistant: Sorry, I couldn\'t understand that conversion.';
+                        speakResponse('Sorry, I couldn\'t understand that conversion.');
+                    }
+                } else {
+                    recognitionOutput.textContent = 'Voice Assistant: Sorry, I didn\'t understand that.';
+                    speakResponse("Sorry, I didn't understand that.");
+                }
+
+                // Save conversation data to JSON file
+                const conversationData = {
+                    user: command,
+                    assistant: recognitionOutput.textContent
+                };
+                saveConversation(conversationData);
+            }
+
+            function speakResponse(response) {
+                const utterance = new SpeechSynthesisUtterance(response);
+                audio.src = 'data:audio/wav;base64,' + btoa(response);
+                utterance.lang = 'en-IN';
+                speechSynthesis.speak(utterance);
+            }
+
+            function saveConversation(data) {
+                fetch('/save-conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    console.log('Conversation saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving conversation:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+       .container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #output {
+            margin-top: 20px;
+        }
+
+        #weather-info {
+            margin-top: 20px;
+        }
+
+        #conversation {
+            max-width: 500px;
+            margin-top: 20px;
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Assistant</h1>
+        <button id="start-btn">Start Listening</button>
+        <p id="output"></p>
+        <audio id="audio" controls style="display: none;"></audio>
+    </div>
+
+    <div id="weather-info"></div>
+
+    <div id="conversation"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startBtn = document.getElementById('start-btn');
+            const output = document.getElementById('output');
+            const audio = document.getElementById('audio');
+            const conversation = document.getElementById('conversation');
+    
+            recognition = new window.webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+    
+            startBtn.addEventListener('click', function () {
+                startBtn.disabled = true;
+                output.textContent = 'Listening...';
+    
+                recognition.start();
+            });
+    
+            recognition.onresult = function (event) {
+                const command = event.results[0][0].transcript.trim();
+                output.textContent = 'Command:'+ command;
+    
+                handleCommand(command);
+            };
+    
+            recognition.onspeechend = function () {
+                recognition.stop();
+                startBtn.disabled = false;
+                output.textContent = '';
+            };
+    
+            recognition.onerror = function (event) {
+                output.textContent = 'Error occurred in recognition:'+ event.error;
+                startBtn.disabled = false;
+            };
+    
+            function handleCommand(command) {
+                const recognitionOutput = document.getElementById('output');
+                const conversationItem = document.createElement('div');
+                conversationItem.className = 'conversation-item';
+                conversationItem.textContent = 'User:'+ command;
+                conversation.appendChild(conversationItem);
+    
+                // Basic command handling logic
+                fetch('/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+               .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+               .then(data => {
+                    const assistantResponse = data.assistant;
+                    recognitionOutput.textContent = 'Voice Assistant:'+ assistantResponse;
+                    speakResponse(assistantResponse);
+                })
+               .catch(error => {
+                    console.error('Error handling command:', error);
+                    recognitionOutput.textContent = 'Voice Assistant: Sorry, I encountered an error.';
+                    speakResponse('Sorry, I encountered an error.');
+                });
+            }
+    
+            function speakResponse(response) {
+                const utterance = new SpeechSynthesisUtterance(response);
+                utterance.lang = 'en-IN';
+                speechSynthesis.speak(utterance);
+            }
+        });
+    </script>
+</body>
+</html>
